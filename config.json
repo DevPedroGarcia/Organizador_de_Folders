@@ -1,0 +1,15 @@
+{
+  "source_dir": "C:/Users/pedro/OneDrive/Área de Trabalho/pasta coisas inuteis",
+  "dest_dir": "C:/Users/pedro/OneDrive/Área de Trabalho/Pasta organizada",
+
+  "move_extensions": [
+    ".png"
+  ],
+
+  "delete_patterns": [
+    ".zip"
+  ],
+
+  "quarantine_dir": "C:/Users/pedro/Documents/Quarantine"
+}
+
