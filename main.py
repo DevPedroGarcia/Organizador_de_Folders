@@ -32,6 +32,10 @@ class FileManager:
     def _clear_screen(self):
         os.system('cls' if os.name == 'nt' else 'clear')
 
+    def _pause(self):
+        input("\nPress ENTER to return to the menu...")
+        self._clear_screen()    
+
     def _get_files(self, extension=None):
         """Helper to fetch files, optionally filtered by extension."""
         files = [f for f in self.source_dir.iterdir() if f.is_file()]
@@ -42,6 +46,7 @@ class FileManager:
     def _confirm_operation(self):
         response = input("\nConfirm operation? (y/n): ").strip().lower()
         return response == 'y'
+        
 
     # --- DELETE OPERATIONS ---
 
@@ -75,9 +80,11 @@ class FileManager:
 
         files_to_delete = [f for f in zip_files if f.name in target_names]
 
-        print("\n--- DRY RUN (Simulation) ---")
+        self._clear_screen()
+
+        print("\n--- DELETE FILES ---")
         for file in files_to_delete:
-            # file.unlink()  <-- Uncomment this line to actually delete
+            file.unlink()
             print(f"[SIMULATION] Would delete: {file.name}")
 
     # --- MOVE OPERATIONS ---
@@ -102,6 +109,7 @@ class FileManager:
     def _execute_move(self, files):
         if not files:
             print("No files to move.")
+            self._clear_screen()
             return
 
         print("\nFiles ready to move:")
@@ -115,6 +123,8 @@ class FileManager:
                 print(f"Moved: {file.name}")
         else:
             print("Operation cancelled.")
+        
+        self._pause()
 
     # --- MAIN CONTROLLER ---
 
@@ -128,7 +138,6 @@ class FileManager:
             print("5. Exit")
             
             choice = input("Enter your choice (1-5): ").strip()
-            self._clear_screen()
 
             if choice == '1':
                 self.move_all_pngs()
@@ -143,6 +152,8 @@ class FileManager:
                 break
             else:
                 print("Invalid choice. Please try again.")
+                print("\nPress ENTER to return to menu...")
+                self._clear_screen()
 
 if __name__ == '__main__':
     app = FileManager()
