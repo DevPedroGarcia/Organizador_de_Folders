@@ -1,6 +1,6 @@
 {
-  "source_dir": "C:/Users/pedro/OneDrive/Área de Trabalho/pasta coisas inuteis",
-  "dest_dir": "C:/Users/pedro/OneDrive/Área de Trabalho/Pasta organizada",
+  "source_dir": "C:/Users/source_dir",
+  "dest_dir": "C:/Users/dest_dir",
 
   "move_extensions": [
     ".png"
