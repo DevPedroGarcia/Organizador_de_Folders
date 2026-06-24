@@ -3,120 +3,147 @@ import shutil
 import os
 from pathlib import Path
 
-# --- FUNÇÕES DE CONFIGURAÇÃO ---
-def load_config():
-    with open('config.json', 'r', encoding='UTF-8') as f:
-        return json.load(f)
+class FileManager:
+    def __init__(self, config_path='config.json'):
+        self.config = self._load_config(config_path)
+        self.source_dir = Path(self.config['source_dir'])
+        self.dest_dir = Path(self.config['dest_dir'])
+        self._validate_directories()
 
-def check_directories(source_dir, dest_dir):
-    if not source_dir.exists():
-        print(f"Source directory {source_dir} does not exist.")
-        exit(1)
+    def _load_config(self, path):
+        with open(path, 'r', encoding='UTF-8') as f:
+            return json.load(f)
 
-    if not dest_dir.exists():
-        print(f"Destination directory {dest_dir} does not exist.")
-        response = input("Do you want to create the destination directory? (y/n): ")
-        if response.lower() == 'y':
-            dest_dir.mkdir(parents=True, exist_ok=True)
-            print("Directory created successfully.")
-        else:
-            print("Exiting.")
+    def _validate_directories(self):
+        if not self.source_dir.exists():
+            print(f"Error: Source directory '{self.source_dir}' does not exist.")
             exit(1)
 
-def clean_screen(): 
-    # Correção: 'nt' e 'clear' precisavam estar entre aspas (como strings)
-    os.system('cls' if os.name == 'nt' else 'clear')
+        if not self.dest_dir.exists():
+            print(f"Destination directory '{self.dest_dir}' does not exist.")
+            response = input("Create destination directory? (y/n): ").strip().lower()
+            if response == 'y':
+                self.dest_dir.mkdir(parents=True, exist_ok=True)
+                print("Directory created successfully.")
+            else:
+                print("Exiting.")
+                exit(1)
 
-# --- FUNÇÕES DE LÓGICA ---
-def list_files(directory):
-    return [f for f in directory.iterdir() if f.is_file()]
+    def _clear_screen(self):
+        os.system('cls' if os.name == 'nt' else 'clear')
 
-def choose_move_option(source_dir):
-    print("\nMove options:")
-    print("1. Move all PNG files")
-    print("2. Move specific files")
-    choice = input("Enter your choice (1/2): ")
-    
-    clean_screen()
+    def _get_files(self, extension=None):
+        """Helper to fetch files, optionally filtered by extension."""
+        files = [f for f in self.source_dir.iterdir() if f.is_file()]
+        if extension:
+            files = [f for f in files if f.suffix.lower() == extension.lower()]
+        return files
 
-    if choice == '2':
-        print("\nAvaliable files:")
-        for arquivo in list_files(source_dir):
-            if arquivo.suffix.lower() != '.png':
-                print(f"- {arquivo.name}")
-        print("-" * 40)
+    def _confirm_operation(self):
+        response = input("\nConfirm operation? (y/n): ").strip().lower()
+        return response == 'y'
+
+    # --- DELETE OPERATIONS ---
+
+    def delete_all_zips(self):
+        zip_files = self._get_files(extension='.zip')
         
-        file_names = input("Enter file names to move (separated by commas): ")
-        clean_screen()
-        return [name.strip() for name in file_names.split(',')]
-        
-    return choice
+        if not zip_files:
+            print("No .zip files found.")
+            return
 
-def should_move(choice, source_dir):
-    arquivos_para_mover = []
-    
-    if choice == '1':
-        for arquivo in list_files(source_dir):
-            if arquivo.suffix.lower() == '.png':
-                arquivos_para_mover.append(arquivo)
-                
-    elif isinstance(choice, list): 
-        for arquivo in list_files(source_dir):
-            if arquivo.name in choice:
-                arquivos_para_mover.append(arquivo)
-                
-    return arquivos_para_mover 
-
-def move_folder(arquivos_finais, dest_dir):
-    for archive in arquivos_finais: 
-        dest_way = dest_dir / archive.name
-        shutil.move(archive, dest_way)
-        print(f"Success: {archive.name} was moved!")
-
-def confirm_moved_archives():
-    print("\nDo you confirm this operation?")
-    confirmChoice = input("Enter the choice (Y/N): ").upper()
-    
-    if confirmChoice == "Y": 
-        return True
-    elif confirmChoice == "N":
-        return False
-    else:
-        print("This option doesn't exist.")
-        exit(1)
-
-# --- O MAESTRO (Função Principal) ---
-def main():
-    # 1. Carrega as configurações
-    config = load_config()
-    source_dir = Path(config['source_dir'])
-    dest_dir = Path(config['dest_dir'])
-
-    # 2. Verifica se as pastas existem
-    check_directories(source_dir, dest_dir)
-    
-    # 3. O Loop Principal do Programa
-    while True:
-        escolha_usuario = choose_move_option(source_dir)
-        arquivos_finais = should_move(escolha_usuario, source_dir)
-
-        if not arquivos_finais:
-            print("No files to move. Exiting.")
-            break
-
-        print("\nThese archives are ready to be moved:")
-        for f in arquivos_finais:
-            print(f"- {f.name}")
-
-        # 4. Confirmação
-        if confirm_moved_archives():
-            move_folder(arquivos_finais, dest_dir)
-            break # Encerra o loop e o programa após mover
+        if self._confirm_operation():
+            for file in zip_files:
+                file.unlink()
+                print(f"Deleted: {file.name}")
         else:
-            clean_screen()
-            print("Operation cancelled. Let's try again...\n")
-            # Como não tem 'break' aqui, o 'while True' faz o programa voltar para o menu!
+            print("Operation cancelled.")
 
-# Isso garante que o script só rode se for executado diretamente
+    def delete_specific_zips(self):
+        zip_files = self._get_files(extension='.zip')
+        
+        if not zip_files:
+            print("No .zip files found.")
+            return
+
+        print("\nAvailable .zip files:")
+        for file in zip_files:
+            print(f"- {file.name}")
+
+        target_names = input("\nEnter file names to delete (comma-separated): ").split(',')
+        target_names = [name.strip() for name in target_names]
+
+        files_to_delete = [f for f in zip_files if f.name in target_names]
+
+        print("\n--- DRY RUN (Simulation) ---")
+        for file in files_to_delete:
+            # file.unlink()  <-- Uncomment this line to actually delete
+            print(f"[SIMULATION] Would delete: {file.name}")
+
+    # --- MOVE OPERATIONS ---
+
+    def move_all_pngs(self):
+        png_files = self._get_files(extension='.png')
+        self._execute_move(png_files)
+
+    def move_specific_files(self):
+        all_files = self._get_files()
+        
+        print("\nAvailable files:")
+        for file in all_files:
+            print(f"- {file.name}")
+
+        target_names = input("\nEnter file names to move (comma-separated): ").split(',')
+        target_names = [name.strip() for name in target_names]
+        
+        files_to_move = [f for f in all_files if f.name in target_names]
+        self._execute_move(files_to_move)
+
+    def _execute_move(self, files):
+        if not files:
+            print("No files to move.")
+            return
+
+        print("\nFiles ready to move:")
+        for file in files:
+            print(f"- {file.name}")
+
+        if self._confirm_operation():
+            for file in files:
+                destination = self.dest_dir / file.name
+                shutil.move(file, destination)
+                print(f"Moved: {file.name}")
+        else:
+            print("Operation cancelled.")
+
+    # --- MAIN CONTROLLER ---
+
+    def run(self):
+        while True:
+            print("\n--- FILE AUTOMATOR ---")
+            print("1. Move all PNG files")
+            print("2. Move specific files")
+            print("3. Delete all ZIP files")
+            print("4. Delete specific ZIP files")
+            print("5. Exit")
+            
+            choice = input("Enter your choice (1-5): ").strip()
+            self._clear_screen()
+
+            if choice == '1':
+                self.move_all_pngs()
+            elif choice == '2':
+                self.move_specific_files()
+            elif choice == '3':
+                self.delete_all_zips()
+            elif choice == '4':
+                self.delete_specific_zips()
+            elif choice == '5':
+                print("Exiting program.")
+                break
+            else:
+                print("Invalid choice. Please try again.")
+
 if __name__ == '__main__':
-    main()
+    app = FileManager()
+    app.run()
